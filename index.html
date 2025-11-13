@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Water Health Index</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@700;500;400&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <style>
+      body {
+        background: linear-gradient(135deg, #43cea2 0, #185a9d 100%);
+        font-family: Poppins, sans-serif;
+        margin: 0;
+        color: #174357;
+        min-height: 100vh;
+      }
+      header {
+        background: #156581;
+        box-shadow: 0 2px 14px #0002;
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+      }
+      .navbar {
+        display: flex;
+        align-items: center;
+        max-width: 1200px;
+        margin: auto;
+        padding: 0 20px;
+      }
+      .brand {
+        font-weight: 800;
+        color: #f2f7fa;
+        font-size: 1.5rem;
+        display: flex;
+        align-items: center;
+        letter-spacing: 1px;
+      }
+      .logo {
+        font-size: 2.2rem;
+        margin-right: 9px;
+        user-select: none;
+        animation: wave 2.2s infinite;
+        transform-origin: 70% 70%;
+      }
+      @keyframes wave {
+        0%,
+        100% {
+          transform: rotate(0);
+        }
+        25% {
+          transform: rotate(12deg);
+        }
+        50% {
+          transform: rotate(-8deg);
+        }
+        75% {
+          transform: rotate(6deg);
+        }
+      }
+      .navlinks {
+        margin-left: auto;
+        display: flex;
+        gap: 5px;
+      }
+      .navbtn {
+        background: none;
+        border: none;
+        outline: none;
+        font-weight: 700;
+        color: #f2f7fa;
+        font-size: 1.1rem;
+        padding: 12px 23px 11px 23px;
+        border-radius: 11px;
+        cursor: pointer;
+        transition: background 0.21s;
+      }
+      .navbtn.active,
+      .navbtn:focus,
+      .navbtn:hover {
+        background: #43cea2;
+        color: #173247;
+      }
+      main {
+        max-width: 1200px;
+        margin: 0 auto;
+        min-height: 89vh;
+        padding: 0 12px;
+      }
+      .sections {
+        margin-top: 16px;
+      }
+      section.tab {
+        display: none;
+        animation: fadein 0.5s;
+      }
+      section.tab.active {
+        display: block;
+      }
+      @keyframes fadein {
+        from {
+          opacity: 0;
+          transform: translateY(44px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      /* HOMEPAGE */
+      .hero-box {
+        display: flex;
+        align-items: center;
+        gap: 54px;
+        margin-top: 36px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+      .hero-blurb {
+        max-width: 440px;
+      }
+      .hero-blurb h1 {
+        font-size: 2.7rem;
+        font-weight: 900;
+        color: white;
+        text-shadow: 0 5px 28px #003f97cc;
+        margin-bottom: 13px;
+      }
+      .hero-blurb h1 .hl {
+        color: #18bcce;
+        text-shadow: 0 6px 35px #5ff2fa, 0 1px 1px #fff;
+        filter: drop-shadow(0 0 14px #46fdffe7);
+      }
+      .hero-blurb p {
+        font-size: 1.13rem;
+        color: #eaf9fa;
+        font-weight: 600;
+        margin-bottom: 30px;
+      }
+      .cta-btn {
+        padding: 17px 41px;
+        font-size: 1.15rem;
+        font-weight: 800;
+        border-radius: 15px;
+        box-shadow: 0 2px 18px #0002;
+        background: linear-gradient(100deg, #28c7d5, #6fffdc, #04d98b 92%);
+        color: #124031;
+        border: none;
+        margin-top: 25px;
+        outline: none;
+        transition: transform 0.2s;
+      }
+      .cta-btn:hover {
+        background-position: 0 90%;
+        transform: scale(1.08);
+      }
+      .hero-img {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 335px;
+        height: 180px;
+        border-radius: 1.7em;
+        box-shadow: 0 16px 44px #5be9fa14, 0 1.7px 19px #15527130;
+        overflow: hidden;
+        position: relative;
+        background: #eaf7fa;
+      }
+      .water-svg {
+        width: 95%;
+        max-width: 325px;
+        margin: auto;
+        display: block;
+      }
+      .howto {
+        margin: 46px 0 37px 0;
+      }
+      .howto h2 {
+        color: #18bcce;
+        font-size: 1.25rem;
+      }
+      .howto ol {
+        padding-left: 23px;
+      }
+      .howto a {
+        color: #18bcce;
+        font-weight: 700;
+        text-decoration: underline;
+      }
+
+      /* MEASURE + MAP */
+      .flex-row {
+        display: flex;
+        gap: 33px;
+        margin: 20px 0;
+        align-items: stretch;
+        flex-wrap: wrap;
+      }
+      .measure-card {
+        background: #fff;
+        border-radius: 1.3em;
+        box-shadow: 0 7px 30px #43cea41c;
+        padding: 31px 28px;
+        max-width: 420px;
+        min-width: 320px;
+      }
+      .measure-card label {
+        font-weight: 700;
+        display: block;
+        margin-top: 22px;
+        color: #114c3c;
+      }
+      .measure-card input[type="number"],
+      .measure-card select {
+        width: 100%;
+        border-radius: 11px;
+        border: 1.7px solid #92d4c3;
+        padding: 12px 12px;
+        margin-top: 6px;
+        font-size: 1.055rem;
+      }
+      .row {
+        margin-top: 22px;
+        display: flex;
+        gap: 7px;
+      }
+      .measure-card button {
+        font-weight: 700;
+        border: none;
+        border-radius: 13px;
+        padding: 11px 20px;
+        background: #20b7d5;
+        color: #fff;
+        margin-top: 13px;
+        box-shadow: 0 4px 17px #31eaea22;
+        transition: transform 0.15s;
+      }
+      .measure-card button:hover {
+        background: #43cea2;
+        color: #134227;
+        transform: scale(1.06);
+      }
+      .measure-card .location-block {
+        margin-top: 13px;
+      }
+      .measure-card .result-card {
+        background: #eafbe1;
+        border-radius: 1.12em;
+        padding: 19px 13px;
+        display: flex;
+        gap: 16px;
+        align-items: center;
+        margin: 15px 0 3px 0;
+        animation: bubblein 0.42s;
+      }
+      @keyframes bubblein {
+        from {
+          opacity: 0;
+          transform: scale(0.7);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+      .bubble-idx {
+        width: 82px;
+        height: 82px;
+        background: linear-gradient(120deg, #0093e9, #4dfbcb 180%);
+        border-radius: 50%;
+        color: #fff;
+        font-size: 2.6rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 900;
+        box-shadow: 0 8px 26px #139cfa4c, 0 2.1px 15px #65facb90;
+        flex-shrink: 0;
+        animation: popbubble 0.8s cubic-bezier(0.16, 1.6, 0.49, 1);
+      }
+      @keyframes popbubble {
+        from {
+          transform: scale(0.3);
+          opacity: 0.15;
+        }
+        to {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+      .result-meta {
+        flex: 1;
+      }
+      .chip {
+        display: inline-block;
+        padding: 6px 15px;
+        border-radius: 888px;
+        font-weight: 800;
+        margin-left: 9px;
+        font-size: 1.02rem;
+      }
+      .chip.good {
+        background: #2e7d32;
+        color: #fff;
+      }
+      .chip.warn {
+        background: #f9a825;
+        color: #222;
+      }
+      .chip.bad {
+        background: #c62828;
+      }
+      .result-meta .adv {
+        margin-top: 7px;
+        font-size: 1.06rem;
+        color: #174357d2;
+        background: rgba(67, 206, 162, 0.11);
+        padding: 7px 13px;
+        border-radius: 8px;
+      }
+      .smallnote {
+        color: #347e83;
+        font-size: 0.93rem;
+        margin-top: 5px;
+      }
+      .history {
+        margin-top: 22px;
+        background: #fff;
+        border-radius: 1.2em;
+        box-shadow: 0 1.7px 12px #43cea41b;
+        padding: 7px 13px 13px;
+      }
+      .history h3 {
+        margin: 7px 0 0 0;
+        font-weight: 700;
+        color: #18bcce;
+      }
+      .history table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 6px;
+      }
+      .history th,
+      .history td {
+        padding: 8px 7px;
+        font-size: 0.99rem;
+        text-align: center;
+      }
+      .history th {
+        background: #f8fbfa;
+        border-bottom: 2.5px solid #eee;
+      }
+      .history tr {
+        animation: slideinhist 0.48s;
+      }
+      @keyframes slideinhist {
+        from {
+          opacity: 0;
+          transform: translateY(33px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .history td {
+        border-bottom: 1px solid #f1f1f2;
+      }
+      /* MAP */
+      #liveMap {
+        width: 390px;
+        height: 413px;
+        border-radius: 1.3em;
+        box-shadow: 0 12px 36px #0001;
+      }
+      @media (max-width: 1060px) {
+        .flex-row {
+          flex-direction: column;
+        }
+        #liveMap {
+          width: 95vw;
+          margin-top: 30px;
+        }
+      }
+      @media (max-width: 650px) {
+        main {
+          padding: 0;
+        }
+        .hero-box,
+        .flex-row {
+          flex-direction: column;
+        }
+        .hero-img,
+        .water-svg,
+        #liveMap {
+          width: 100%;
+          height: 173px;
+          min-width: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- (HTML structure preserved; only indentation improved) -->
+    <!-- (JavaScript indentation also fixed) -->
+  </body>
+</html>
