@@ -320,7 +320,7 @@ function addMarker(r){
   }).addTo(mapLive).bindPopup(`<b>${r.place||''}</b><br>Index: ${r.idx}<br>pH: ${r.ph}<br>Temp: ${r.temp}<br>Turb: ${r.turb}`);
   mapMarkers.push(marker);
 }
-function renderLiveMap(){if(mapLive)return;
+function renderLiveMap(){if(mapLive)return
 mapLive=L.map('liveMap',{center:[20,0],zoom:2});
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(mapLive);}
 renderLiveMap();
