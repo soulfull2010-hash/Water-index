@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,6 +6,7 @@
   <title>Water Health Index</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700;500;400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <style>
     body { background: linear-gradient(135deg, #43cea2 0, #185a9d 100%); font-family: Poppins,sans-serif; margin:0; color:#174357; min-height:100vh;}
     header { background: #156581; box-shadow: 0 2px 14px #0002; position:sticky;top:0;z-index:1000;}
@@ -12,9 +14,9 @@
     .brand {font-weight:800;color:#f2f7fa;font-size:1.5rem;display:flex;align-items:center; letter-spacing:1px;}
     .logo { font-size:2.2rem; margin-right:9px; user-select:none; animation:wave 2.2s infinite; transform-origin: 70% 70%;}
     @keyframes wave {0%,100%{transform:rotate(0)} 25%{transform:rotate(12deg)} 50%{transform:rotate(-8deg)} 75%{transform:rotate(6deg)}}
-    nav {margin-left:auto;}
-    nav a {background:none;border:none;outline:none;font-weight:700;color:#f2f7fa;font-size:1.1rem;padding:12px 23px 11px 23px;border-radius:11px;text-decoration:none;transition:background .21s;}
-    nav a.active, nav a:hover {background:#43cea2;color:#173247;}
+    .navlinks {margin-left:auto;display:flex;gap:5px;}
+    .navbtn {background:none;border:none;outline:none;font-weight:700;color:#f2f7fa;font-size:1.1rem;padding:12px 23px 11px 23px;border-radius:11px;cursor:pointer;transition:background .21s;}
+    .navbtn.active,.navbtn:focus,.navbtn:hover {background:#43cea2;color:#173247;}
     main {max-width:1200px;margin:0 auto;min-height:89vh;padding:0 12px;}
     .sections {margin-top:16px;}
     section.tab {display:none;animation:fadein .5s;}
@@ -34,14 +36,6 @@
     .howto h2 {color:#18bcce;font-size:1.25rem;}
     .howto ol {padding-left:23px;}
     .howto a {color: #18bcce; font-weight:700; text-decoration:underline;}
-    @media (max-width: 1060px) {.hero-box{flex-direction:column;} .hero-img{width:95vw;}}
-    @media (max-width: 650px) {main {padding:0;} .hero-box{flex-direction:column;} .hero-img,.water-svg{width:100%;height:143px;min-width:0;}}
-  </style>
-</head>
-<body>
-<header>
-  <div class="navbar">
-    <span class="brand"><span class="logo">🌊</span> Water Health Index</span>
     <nav>
       <a href="index.html" class="active">Home</a>
       <a href="measure.html">Measure</a>
@@ -50,11 +44,55 @@
       <a href="care.html">Care</a>
       <a href="details.html">Details</a>
     </nav>
+
+    /* ----------- MEASURE+MAP ----------- */
+    .flex-row {display:flex;gap:33px;margin:20px 0;align-items:stretch;flex-wrap:wrap;}
+    .measure-card {background:#fff;border-radius:1.3em;box-shadow:0 7px 30px #43cea41c;padding:31px 28px;max-width:420px;min-width:320px;}
+    .measure-card label {font-weight:700;display:block;margin-top:22px;color:#114c3c;}
+    .measure-card input[type=number],.measure-card select {width:100%;border-radius:11px;border:1.7px solid #92d4c3;padding:12px 12px;margin-top:6px;font-size:1.055rem;}
+    .row {margin-top:22px;display:flex;gap:7px;}
+    .measure-card button {font-weight:700;border:none;border-radius:13px;padding:11px 20px;background:#20b7d5;color:#fff;margin-top:13px;box-shadow:0 4px 17px #31eaea22;transition:transform .15s;}
+    .measure-card button:hover {background:#43cea2;color:#134227;transform:scale(1.06);}
+    .measure-card .location-block{margin-top:13px;}
+    .measure-card .result-card {background:#eafbe1;border-radius:1.12em;padding:19px 13px;display:flex;gap:16px;align-items:center;margin:15px 0 3px 0;animation:bubblein .42s;}
+    @keyframes bubblein {from{opacity:0;transform:scale(0.7);} to{opacity:1;transform:scale(1);}}
+    .bubble-idx {width:82px;height:82px;background:linear-gradient(120deg,#0093E9,#4dfbcb 180%);border-radius:50%;color:#fff;font-size:2.6rem;display:flex;align-items:center;justify-content:center;font-weight:900;box-shadow:0 8px 26px #139cfa4c, 0 2.1px 15px #65facb90;flex-shrink:0;animation:popbubble 0.8s cubic-bezier(.16,1.6,.49,1);}
+    @keyframes popbubble {from{transform:scale(.3);opacity:.15;} to{transform:scale(1);opacity:1;}}
+    .result-meta {flex:1;}
+    .chip {display:inline-block;padding:6px 15px;border-radius:888px;font-weight:800;margin-left:9px;font-size:1.02rem;}
+    .chip.good {background:#2e7d32;color:#fff;}
+    .chip.warn {background:#f9a825;color:#222;}
+    .chip.bad {background:#c62828;}
+    .result-meta .adv {margin-top:7px;font-size:1.06rem;color:#174357d2;background:rgba(67,206,162,.11);padding:7px 13px;border-radius:8px;}
+    .smallnote {color:#347e83;font-size:0.93rem;margin-top:5px;}
+    .history {margin-top:22px;background:#fff;border-radius:1.2em;box-shadow:0 1.7px 12px #43cea41b;padding:7px 13px 13px;}
+    .history h3 {margin:7px 0 0 0;font-weight:700;color:#18bcce;}
+    .history table {width:100%;border-collapse:collapse;margin-top:6px;}
+    .history th,.history td {padding:8px 7px;font-size:0.99rem; text-align:center;}
+    .history th {background:#f8fbfa;border-bottom:2.5px solid #eee;}
+    .history tr {animation:slideinhist .48s;}
+    @keyframes slideinhist {from{opacity:.0;transform:translateY(33px);} to{opacity:1;transform:translateY(0);}}
+    .history td {border-bottom:1px solid #f1f1f2;}
+    /* ----------- MAP ----------- */
+    #liveMap {width:390px;height:413px;border-radius:1.3em;box-shadow:0 12px 36px #0001;}
+    @media (max-width: 1060px) {.flex-row{flex-direction: column;}#liveMap{width:95vw;margin-top:30px;}}
+    @media (max-width: 650px) {main {padding:0;} .hero-box,.flex-row{flex-direction:column;} .hero-img,.water-svg,#liveMap{width:100%;height:173px;min-width:0;}}
+  </style>
+</head>
+<body>
+<header>
+  <div class="navbar">
+    <span class="brand"><span class="logo">🌊</span> Water Health Index</span>
+    <nav class="navlinks">
+      <button class="navbtn active" data-tab="home">Home</button>
+      <button class="navbtn" data-tab="measure">Measure</button>
+    </nav>
   </div>
 </header>
 <main>
   <div class="sections">
-    <section class="tab active">
+    <!-- Home tab -->
+    <section class="tab active" data-tab="home">
       <div class="hero-box">
         <div class="hero-blurb">
           <h1>
@@ -64,7 +102,7 @@
             Discover, measure, and share water quality.<br>
             Fast, science-powered, and super easy — made for students and teams!
           </p>
-          <a class="cta-btn" href="measure.html">Start Measurement</a>
+          <button class="cta-btn" data-goto="measure">Start Measurement</button>
         </div>
         <div class="hero-img">
           <svg class="water-svg" width="320" height="130" viewBox="0 0 320 130" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -93,7 +131,215 @@
         </ol>
       </div>
     </section>
+    <!-- Measure tab -->
+    <section class="tab" data-tab="measure">
+      <div class="flex-row">
+        <form class="measure-card" id="measureForm" autocomplete="off" onsubmit="return false">
+          <label for="phInput">pH (0.0 - 14.0)</label>
+          <input id="phInput" type="number" step="0.1" min="0" max="14" required placeholder="e.g., 7.2">
+          <label for="tempInput">Temperature (°C)</label>
+          <input id="tempInput" type="number" step="0.1" min="-5" max="60" required placeholder="e.g., 23.4">
+          <label for="turbiditySelect">Turbidity</label>
+          <select id="turbiditySelect" required>
+            <option value="">Select turbidity</option>
+            <option value="low">Low — Clear</option>
+            <option value="medium">Medium — Cloudy</option>
+            <option value="high">High — Muddy</option>
+          </select>
+          <div class="row">
+            <button type="button" id="analyzeBtn">Analyze</button>
+            <button type="button" id="cameraBtn">Camera</button>
+            <button type="button" id="switchCamBtn">Switch Camera</button>
+          </div>
+          <div id="cameraArea" style="display:none;">
+            <video id="video" autoplay playsinline style="width:100%;border-radius:10px;margin-top:10px;"></video>
+            <div class="row">
+              <button type="button" id="captureBtn">Capture Color</button>
+              <button type="button" id="closeCamBtn">Close Camera</button>
+            </div>
+            <div class="smallnote" id="cameraNote">Align pH strip steady under good light!</div>
+          </div>
+          <div class="location-block">
+            <button type="button" id="locBtn">Use My Location</button>
+            <div class="smallnote" id="locLabel">No location attached</div>
+          </div>
+          <div id="resultBlock" class="result-card" style="display:none;">
+            <div class="bubble-idx" id="idxBubble">--</div>
+            <div class="result-meta">
+              <span id="statusText">
+                <b>Status: </b> <span class="chip">--</span>
+              </span>
+              <div id="subScores" class="smallnote"></div>
+              <div class="adv" id="adviceText"></div>
+            </div>
+          </div>
+          <div class="row">
+            <button type="button" id="saveBtn">Save Reading</button>
+            <button type="button" id="clearBtn" style="background:#d90d45;color:#fff;">Clear History</button>
+          </div>
+        </form>
+        <div>
+          <div id="liveMap"></div>
+          <div class="map-legend">Your saved readings appear here.<br>Green=Good, Yellow=Moderate, Red=Poor</div>
+        </div>
+      </div>
+      <div class="history" id="historyBlock" style="display:none;">
+        <h3>Saved Readings</h3>
+        <table><thead>
+          <tr><th>When</th><th>pH</th><th>Temp</th><th>Turb</th><th>Index</th></tr>
+        </thead><tbody id="historyRows"></tbody></table>
+      </div>
+    </section>
   </div>
 </main>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// Nav
+document.querySelectorAll('.navbtn').forEach(btn=>{
+  btn.onclick=function(){
+    document.querySelectorAll('.navbtn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    let tab=btn.dataset.tab;
+    document.querySelectorAll('.tab').forEach(sec=>{
+      sec.classList.remove('active');
+      if(sec.dataset.tab===tab) sec.classList.add('active');
+    });
+    window.scrollTo(0,0);
+    setTimeout(()=>{if(tab=='measure'){mapLive.invalidateSize();}},200);
+  };
+});
+document.querySelectorAll('.cta-btn').forEach(link=>{
+  link.onclick=function(e){
+    e.preventDefault();
+    document.querySelector('.navbtn[data-tab="measure"]').click();
+  }
+});
+// Measurement logic and camera toggle
+function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
+function scorePH(ph){const diff=Math.abs(ph-7.0);const penalty=7.5*Math.pow(diff,1.55);return clamp(100-penalty,0,100);}
+function scoreTemp(t){if(isNaN(t))return 80;if(t>=20&&t<=26)return 100;if(t<20)return clamp(100-Math.pow(20-t,1.2)*4.5,0,100);return clamp(100-Math.pow(t-26,1.25)*5.5,0,100);}
+function scoreTurb(t){if(t==='low')return 100;if(t==='medium')return 62;if(t==='high')return 28;return 50;}
+function adviceFor(index){if(index>=95)return"Outstanding water quality!";if(index>=85)return"Excellent — minimal stress.";if(index>=75)return"Very Good condition.";if(index>=60)return"Monitor seasonally.";if(index>=45)return"Borderline: protect sources.";return "Poor water quality; test for pollution sources.";}
+function statusChipClass(idx){if(idx>=80){return 'good'}else if(idx>=50){return 'warn'}else{return 'bad'}}
+// Camera
+let usingBackCamera = true;
+const vid=document.getElementById('video'),cameraArea=document.getElementById('cameraArea');
+const cameraBtn=document.getElementById('cameraBtn'),captureBtn=document.getElementById('captureBtn'),closeCamBtn=document.getElementById('closeCamBtn'),switchCamBtn=document.getElementById('switchCamBtn');
+let mediaStream=null;
+cameraBtn.onclick=openCamera;
+switchCamBtn.onclick = function () {
+  usingBackCamera = !usingBackCamera;
+  closeCamBtn.click();
+  setTimeout(openCamera, 500);
+};
+function openCamera() {
+  navigator.mediaDevices.getUserMedia({
+    video: { facingMode: usingBackCamera ? { exact: "environment"} : "user" }
+  }).then(s => {
+    mediaStream = s;
+    vid.srcObject = s;
+    cameraArea.style.display='block';
+  }).catch(()=>alert('Camera not available or allowed.'));
+}
+closeCamBtn.onclick=()=>{mediaStream&&mediaStream.getTracks().forEach(t=>t.stop());vid.srcObject=null;cameraArea.style.display='none';};
+captureBtn.onclick=()=>{
+if(!mediaStream)return;
+let c=document.createElement('canvas'),w=vid.videoWidth,h=vid.videoHeight;
+c.width=w;c.height=h;let ctx=c.getContext('2d');
+ctx.drawImage(vid,0,0,w,h);
+let d=ctx.getImageData(w/2-15,h/2-15,30,30).data,r=0,g=0,b=0,count=0;
+for(let i=0;i<d.length;i+=4){r+=d[i];g+=d[i+1];b+=d[i+2];count++;}
+r=Math.round(r/count);g=Math.round(g/count);b=Math.round(b/count);
+function estimatePH(r,g,b){
+  const mx=Math.max(r,g,b),mn=Math.min(r,g,b),diff=mx-mn;
+  let hue=0;if(diff===0)hue=0;else if(mx===r)hue=(60*((g-b)/diff)+360)%360;
+  else if(mx===g)hue=(60*((b-r)/diff)+120)%360;else hue=(60*((r-g)/diff)+240)%360;
+  let ph=7;if(hue>=330||hue<=30)ph=3+(30-Math.abs(hue<=30?hue:360-hue))/30*2;
+  else if(hue>30&&hue<=80)ph=5+(80-hue)/50*2;
+  else if(hue>80&&hue<=160)ph=7+(160-hue)/80*1.2;
+  else if(hue>160&&hue<=260)ph=8.5+(260-hue)/100*2.5;
+  return clamp(Math.round(ph*100)/100,0,14);
+}
+let estPH=estimatePH(r,g,b);
+document.getElementById('phInput').value=estPH;
+document.getElementById('cameraNote').textContent=`Detected color: R${r} G${g} B${b} → pH ≈ ${estPH}`;
+};
+// Location
+let readingPlace='',readingCoords=null;
+function reverseGeocode(lat,lng,cb){
+fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`).then(r=>r.json())
+.then(data=>cb(data.display_name||`${lat.toFixed(3)},${lng.toFixed(3)}`)).catch(()=>cb(`${lat.toFixed(3)},${lng.toFixed(3)}`));
+}
+const locBtn=document.getElementById('locBtn'),locLabel=document.getElementById('locLabel');
+locBtn.onclick=()=>{
+  locLabel.textContent='Getting location...';
+  navigator.geolocation.getCurrentPosition(pos=>{
+    readingCoords={lat:pos.coords.latitude,lng:pos.coords.longitude};
+    reverseGeocode(pos.coords.latitude,pos.coords.longitude,function(name){
+      readingPlace=name;locLabel.textContent=name;
+    });
+  },()=>{locLabel.textContent='Location denied/unavailable.';});
+};
+// Index
+const phInput=document.getElementById('phInput'),tempInput=document.getElementById('tempInput'),turbiditySelect=document.getElementById('turbiditySelect');
+const analyzeBtn=document.getElementById('analyzeBtn'),resultBlock=document.getElementById('resultBlock');
+const idxBubble=document.getElementById('idxBubble'),statusText=document.getElementById('statusText'),adviceText=document.getElementById('adviceText'),subScores=document.getElementById('subScores');
+let savedReadings=[];
+analyzeBtn.onclick=function(){
+  let pH=parseFloat(phInput.value),temp=parseFloat(tempInput.value),turb=turbiditySelect.value;
+  if(isNaN(pH)||isNaN(temp)||!turb){alert('Enter all values first.');return;}
+  let idxRaw=scorePH(pH)*0.5+scoreTemp(temp)*0.25+scoreTurb(turb)*0.25;
+  idxRaw=clamp(Math.round(idxRaw),0,100);
+  let chipClass=statusChipClass(idxRaw),chipTxt=chipClass==='good'?'GOOD':(chipClass==='warn'?'MODERATE':'POOR');
+  resultBlock.style.display='flex';
+  idxBubble.textContent=idxRaw;
+  idxBubble.style.background=idxRaw>=80?"linear-gradient(120deg,#17a232,#60faab 180%)":idxRaw>=50?"linear-gradient(120deg,#ffe93b,#e6cd5b 180%)":"linear-gradient(120deg,#bc1e32,#f97c7c 180%)";
+  statusText.innerHTML=`<b>Status:</b> <span class="chip ${chipClass}">${chipTxt}</span>`;
+  subScores.innerHTML=`pH: <b>${Math.round(scorePH(pH))}</b> &bull; Temp: <b>${Math.round(scoreTemp(temp))}</b> &bull; Turbidity: <b>${Math.round(scoreTurb(turb))}</b>`;
+  adviceText.textContent=adviceFor(idxRaw);
+  resultBlock.idxVal=idxRaw;
+  setTimeout(()=>resultBlock.classList.add('pulse'),15); setTimeout(()=>resultBlock.classList.remove('pulse'),890);
+};
+// Save & Map
+function showHistory() {
+  const historyBlock=document.getElementById('historyBlock');
+  const rows=document.getElementById('historyRows');
+  if(!savedReadings.length){historyBlock.style.display='none';return;}
+  historyBlock.style.display='block'; rows.innerHTML='';
+  savedReadings.forEach(r=>{
+    let d=new Date(r.ts).toLocaleString();
+    rows.innerHTML+=`<tr><td>${d}</td><td>${r.ph}</td><td>${r.temp}</td><td>${r.turb}</td><td>${r.idx}</td></tr>`;
+  });
+}
+let mapLive=null,mapMarkers=[];
+function addMarker(r){
+  if(!mapLive)return;
+  let marker=L.circleMarker([r.lat,r.lng],{
+    radius:10,
+    fillColor:r.idx>=80?'#2e7d32':r.idx>=50?'#f9a825':'#c62828',fillOpacity:0.89,color:'#0093e9',weight:2.2
+  }).addTo(mapLive).bindPopup(`<b>${r.place||''}</b><br>Index: ${r.idx}<br>pH: ${r.ph}<br>Temp: ${r.temp}<br>Turb: ${r.turb}`);
+  mapMarkers.push(marker);
+}
+function renderLiveMap(){if(mapLive)return;
+mapLive=L.map('liveMap',{center:[20,0],zoom:2});
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(mapLive);}
+renderLiveMap();
+document.getElementById('saveBtn').onclick=function(){
+  let pH=parseFloat(phInput.value),temp=parseFloat(tempInput.value),turb=turbiditySelect.value,idx=resultBlock.idxVal||null;
+  if(isNaN(pH)||isNaN(temp)||!turb||idx==null){alert('Input, analyze, and geolocate first.');return;}
+  if(!readingCoords||!readingPlace){alert("Attach location first.");return;}
+  let r={ph:pH,temp:temp,turb:turb,idx:idx,lat:readingCoords.lat,lng:readingCoords.lng,place:readingPlace,ts:Date.now()};
+  savedReadings.unshift(r);addMarker(r);showHistory();
+  alert("Reading saved and plotted on map!");
+};
+document.getElementById('clearBtn').onclick=function(){
+  if(confirm("Clear all readings from session?")){savedReadings.length=0;showHistory();}
+};
+showHistory();
+// Resize fix for map
+window.addEventListener('resize',()=>{if(mapLive)mapLive.invalidateSize();});
+</script>
 </body>
 </html>
+
+
