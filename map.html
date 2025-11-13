@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Map — Water Health & Index</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <style>
+    :root{
+      --primary:#0093E9; --secondary:#80D0C7; --card:#fff; --muted:#274142; --radius:12px;
+    }
+    *{box-sizing:border-box}
+    body{font-family:"Poppins",system-ui,Arial,sans-serif;margin:0;height:100vh;display:flex;flex-direction:column;background:linear-gradient(180deg,var(--primary),var(--secondary));color:#042a2b}
+    header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;color:white}
+    .brand{display:flex;gap:12px;align-items:center}
+    .logo{width:48px;height:48px;border-radius:10px;background:linear-gradient(135deg,var(--primary),var(--secondary));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800}
+    nav a{color:white;text-decoration:none;margin-left:12px;font-weight:600}
+    main{flex:1;display:flex;gap:16px;padding:18px;max-width:1200px;margin:0 auto;width:100%}
+    .left{width:320px;min-width:260px;display:flex;flex-direction:column;gap:12px}
+    .card{background:var(--card);border-radius:var(--radius);padding:12px;box-shadow:0 12px 40px rgba(0,0,0,0.12)}
+    #map{flex:1;border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,0.12)}
+    .controls{display:flex;flex-direction:column;gap:8px}
+    .btn{background:linear-gradient(90deg,var(--primary),var(--secondary));color:white;border:none;padding:10px;border-radius:10px;font-weight:700;cursor:pointer}
+    .btn.ghost{background:transparent;border:1px solid rgba(2,60,80,0.06);color:var(--muted)}
+    label{font-weight:700;color:var(--muted);display:block;margin-bottom:6px}
+    input, select{padding:8px;border-radius:8px;border:1px solid #e8f6fb;width:100%}
+    .small{font-size:0.9rem;color:#516a6b}
+    .legend{display:flex;gap:8px;align-items:center;margin-top:8px}
+    .sw{width:16px;height:16px;border-radius:4px}
+    footer{padding:12px;text-align:center;color:white}
+    @media(max-width:900px){ main{flex-direction:column} .left{width:auto} }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <div class="logo">WH</div>
+      <div>
+        <div style="font-weight:800">Water Health & Index</div>
+        <div style="font-size:13px;opacity:0.95">Global readings map — live from community submissions</div>
+      </div>
+    </div>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="map.html" style="margin-left:10px;font-weight:900;text-decoration:underline">Map</a>
+      <a href="phchart.html" style="margin-left:10px">pH Chart</a>
+      <a href="phcare.html" style="margin-left:10px">pH Care</a>
+      <a href="details.html" style="margin-left:10px">Details</a>
+    </nav>
+  </header>
+
+  <main>
+    <!-- Left pane: controls -->
+    <aside class="left">
+      <div class="card">
+        <h3 style="margin:0 0 8px 0">Map Controls</h3>
+
+        <div class="controls">
+          <div>
+            <label for="minIndex">Minimum Index to show</label>
+            <select id="minIndex">
+              <option value="0">Show all (0+)</option>
+              <option value="25">≥ 25</option>
+              <option value="40">≥ 40</option>
+              <option value="55">≥ 55</option>
+              <option value="70">≥ 70</option>
+              <option value="85">≥ 85</option>
+            </select>
+          </div>
+
+          <div>
+            <label>Live map</label>
+            <div style="display:flex;gap:8px">
+              <button id="refreshBtn" class="btn">Refresh Markers</button>
+              <button id="clearMarkers" class="btn ghost">Clear Local</button>
+            </div>
+            <div style="margin-top:8px" class="small">Markers load from Firebase (path: <code>waterReadings</code>).</div>
+          </div>
+
+          <div>
+            <label>Locate me</label>
+            <div style="display:flex;gap:8px">
+              <button id="locateBtn" class="btn ghost">Find my location</button>
+              <button id="centerGlobal" class="btn ghost">Fit to markers</button>
+            </div>
+          </div>
+
+          <div>
+            <label>Search by text (city / coordinate)</label>
+            <input id="searchInput" placeholder="e.g., Ganga, India or 26.9,82.0">
+            <div style="margin-top:8px;display:flex;gap:8px">
+              <button id="searchBtn" class="btn ghost">Search</button>
+              <button id="resetSearch" class="btn ghost">Reset</button>
+            </div>
+          </div>
+
+          <div style="margin-top:8px">
+            <label>Legend</label>
+            <div class="legend">
+              <div style="display:flex;gap:6px;align-items:center"><div class="sw" style="background:#2e7d32"></div> Good (≥80)</div>
+              <div style="display:flex;gap:6px;align-items:center"><div class="sw" style="background:#f9a825"></div> Moderate (50-79)</div>
+              <div style="display:flex;gap:6px;align-items:center"><div class="sw" style="background:#c62828"></div> Poor (&lt;50)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <h4 style="margin:0 0 8px 0">Map Stats</h4>
+        <div class="small">Total markers: <strong id="totalCount">0</strong></div>
+        <div class="small">Geo-tagged: <strong id="geoCount">0</strong></div>
+        <div class="small" style="margin-top:8px">Last sync: <span id="lastSync">—</span></div>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <h4 style="margin:0 0 8px 0">Notes</h4>
+        <div class="small">This map reads the Firebase Realtime DB at <code>waterReadings</code>. To share globally, ensure your clients save readings to that path (the site does this from Home).</div>
+      </div>
+    </aside>
+
+    <!-- Right: map canvas -->
+    <section style="flex:1;display:flex;flex-direction:column;gap:12px">
+      <div id="map" style="height:72vh" class="card"></div>
+      <div class="card" style="display:flex;justify-content:space-between;align-items:center">
+        <div class="small">Click markers to see detailed reading and options.</div>
+        <div>
+          <button id="liveToggle" class="btn">Live: ON</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>© 2025 Water Health & Index</footer>
+
+  <!-- Leaflet -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Firebase compat -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+  <script>
+    /***************
+     Firebase config (use the same config you used on index.html)
+    ***************/
+    const firebaseConfig = {
+      apiKey: "AIzaSyCIgZOJcjxG1q_wLXsQfxoKTY7o_6zkEDc",
+      authDomain: "waterhealthandindex.firebaseapp.com",
+      projectId: "waterhealthandindex",
+      storageBucket: "waterhealthandindex.firebasestorage.app",
+      messagingSenderId: "512269478610",
+      appId: "1:512269478610:web:d17254c1659e8ec2141b0b",
+      measurementId: "G-BGY7HCP7XX"
+    };
+
+    try {
+      firebase.initializeApp(firebaseConfig);
+      var database = firebase.database();
+      console.log('Firebase ready (map).');
+    } catch(e){
+      console.warn('Firebase init error (map):', e);
+      var database = null;
+    }
+
+    // Setup map
+    const map = L.map('map', {worldCopyJump:true}).setView([20,0], 2);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    let markersLayer = L.layerGroup().addTo(map);
+    let live = true;
+    const liveToggle = document.getElementById('liveToggle');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const clearMarkersBtn = document.getElementById('clearMarkers');
+    const minIndexSelect = document.getElementById('minIndex');
+    const totalCount = document.getElementById('totalCount');
+    const geoCount = document.getElementById('geoCount');
+    const lastSync = document.getElementById('lastSync');
+    const locateBtn = document.getElementById('locateBtn');
+    const centerGlobal = document.getElementById('centerGlobal');
+    const searchInput = document.getElementById('searchInput');
+    const searchBtn = document.getElementById('searchBtn');
+    const resetSearch = document.getElementById('resetSearch');
+
+    // small helper to color markers by index
+    function colorForIndex(idx){
+      if(idx >= 80) return '#2e7d32';
+      if(idx >= 50) return '#f9a825';
+      return '#c62828';
+    }
+
+    function radiusForIndex(idx){
+      // visually vary size
+      return idx >= 80 ? 9 : (idx >= 60 ? 7 : 5);
+    }
+
+    // Render a reading as a marker
+    function addReadingMarker(key, reading){
+      if(!reading) return;
+      // reading fields may be ph,temp,turb,index,lat,lng,ts
+      const idx = parseInt(reading.index) || 0;
+      const minI = parseInt(minIndexSelect.value || 0);
+      if(idx < minI) return null;
+
+      // some DB entries store lat/lng; others store loc: {lat,lng}
+      let lat = reading.lat || (reading.loc && reading.loc.lat);
+      let lng = reading.lng || (reading.loc && reading.loc.lng);
+      if(!lat || !lng) return null;
+
+      const color = colorForIndex(idx);
+      const circle = L.circleMarker([lat, lng], {
+        radius: radiusForIndex(idx),
+        fillColor: color,
+        color: '#000',
+        weight: 0.5,
+        fillOpacity: 0.95
+      });
+
+      const when = reading.ts ? (new Date(reading.ts).toLocaleString()) : (reading.timestamp ? (new Date(reading.timestamp).toLocaleString()) : 'Unknown time');
+      const popupHtml = `
+        <div style="min-width:200px">
+          <strong>Index: ${idx}/100</strong><br/>
+          <small>${when}</small><hr style="margin:6px 0"/>
+          <div class="small"><strong>pH:</strong> ${reading.ph ?? '-'} &nbsp;&nbsp; <strong>Temp:</strong> ${reading.temperature ?? reading.temp ?? '-'} °C</div>
+          <div class="small"><strong>Turbidity:</strong> ${reading.turb ?? reading.turbidity ?? '-'}</div>
+          ${reading.name ? `<div class="small"><strong>User:</strong> ${reading.name}</div>` : ''}
+          ${reading.loc && reading.loc.displayName ? `<div class="small"><strong>Place:</strong> ${reading.loc.displayName}</div>` : ''}
+          <div style="margin-top:8px"><a target="_blank" href="https://www.google.com/maps/search/?api=1&query=${lat},${lng}">Open in Google Maps</a></div>
+        </div>
+      `;
+      circle.bindPopup(popupHtml);
+      circle.addTo(markersLayer);
+      circle._wh_key = key;
+      return circle;
+    }
+
+    // keep index of marker objects by key
+    const markersByKey = {};
+
+    // Remove all markers
+    function clearAllMarkers(){
+      markersLayer.clearLayers();
+      for(const k in markersByKey) delete markersByKey[k];
+    }
+
+    // Load all readings once (non-live)
+    function loadAllReadingsOnce(){
+      if(!database) { alert('No Firebase detected. Map will show only local data if any.'); return; }
+      database.ref('waterReadings').once('value').then(snap=>{
+        const data = snap.val() || {};
+        clearAllMarkers();
+        let total = 0, geo = 0;
+        for(const k in data){
+          const r = data[k];
+          const marker = addReadingMarker(k, r);
+          if(marker) { markersByKey[k] = marker; total++; geo++; }
+        }
+        totalCount.innerText = total;
+        geoCount.innerText = geo;
+        lastSync.innerText = new Date().toLocaleString();
+      }).catch(err=>{
+        console.warn('loadAllReadingsOnce error', err);
+      });
+    }
+
+    // Live subscribe to child_added when live mode ON
+    let firebaseListener = null;
+    function enableLive(){
+      if(!database) return;
+      if(firebaseListener) return;
+      firebaseListener = database.ref('waterReadings').on('child_added', snap => {
+        const k = snap.key, r = snap.val();
+        if(markersByKey[k]) return; // already added
+        const m = addReadingMarker(k, r);
+        if(m) markersByKey[k] = m;
+        // update counts
+        totalCount.innerText = Object.keys(markersByKey).length;
+        geoCount.innerText = Object.values(markersByKey).filter(x=>x).length;
+        lastSync.innerText = new Date().toLocaleString();
+      });
+    }
+    function disableLive(){
+      if(!database || !firebaseListener) return;
+      database.ref('waterReadings').off('child_added', firebaseListener);
+      firebaseListener = null;
+    }
+
+    // Refresh (reload everything)
+    refreshBtn.addEventListener('click', ()=> {
+      clearAllMarkers();
+      loadAllReadingsOnce();
+    });
+
+    // Clear local markers only (not cloud)
+    clearMarkersBtn.addEventListener('click', ()=> {
+      if(!confirm('Clear all visible markers on this view? (Will not delete cloud data)')) return;
+      clearAllMarkers();
+      totalCount.innerText = '0';
+      geoCount.innerText = '0';
+    });
+
+    // toggle live mode
+    liveToggle.addEventListener('click', ()=> {
+      live = !live;
+      liveToggle.textContent = live ? 'Live: ON' : 'Live: OFF';
+      if(live) enableLive(); else disableLive();
+    });
+
+    // minIndex filter
+    minIndexSelect.addEventListener('change', ()=> {
+      // reload map to re-evaluate filter
+      clearAllMarkers();
+      loadAllReadingsOnce();
+    });
+
+    // locate user
+    locateBtn.addEventListener('click', ()=> {
+      if(!navigator.geolocation){ alert('Geolocation not supported'); return; }
+      locateBtn.textContent = 'Locating...';
+      navigator.geolocation.getCurrentPosition(async pos=>{
+        const lat = pos.coords.latitude, lng = pos.coords.longitude;
+        map.setView([lat,lng],12);
+        // add a temporary marker
+        const tm = L.circleMarker([lat,lng], {radius:8,fillColor:'#0077b6',color:'#000',weight:0.6}).addTo(map);
+        setTimeout(()=> tm.remove(), 6000);
+        locateBtn.textContent = 'Locate me';
+      }, err=>{
+        alert('Could not get location: ' + (err.message || err));
+        locateBtn.textContent = 'Locate me';
+      }, {enableHighAccuracy:true, timeout:10000});
+    });
+
+    // center global
+    centerGlobal.addEventListener('click', ()=> {
+      if(markersLayer.getLayers().length === 0) { map.setView([20,0],2); return; }
+      try { map.fitBounds(markersLayer.getBounds(), {padding:[40,40]}); } catch(e){ map.setView([20,0],2); }
+    });
+
+    // search handler (basic: if lat,lng typed center there; else try Nominatim geocoding)
+    searchBtn.addEventListener('click', async ()=> {
+      const q = (searchInput.value||'').trim();
+      if(!q) return alert('Type a city name or coordinates (lat,lng).');
+      // coordinates?
+      const m = q.match(/^\s*([-+]?[0-9]*\.?[0-9]+)\s*,\s*([-+]?[0-9]*\.?[0-9]+)\s*$/);
+      if(m){
+        const lat = parseFloat(m[1]), lng = parseFloat(m[2]);
+        map.setView([lat,lng],12);
+        return;
+      }
+      // try Nominatim
+      const url = 'https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(q);
+      try {
+        const res = await fetch(url);
+        const arr = await res.json();
+        if(arr && arr.length){
+          const first = arr[0];
+          map.setView([parseFloat(first.lat), parseFloat(first.lon)], 10);
+        } else alert('Location not found.');
+      } catch(e){ alert('Search failed.'); }
+    });
+    resetSearch.addEventListener('click', ()=> { searchInput.value=''; map.setView([20,0],2); });
+
+    // initialize: load once + enable live
+    loadAllReadingsOnce();
+    enableLive();
+
+    // On unload: disable firebase listener to avoid leaks
+    window.addEventListener('beforeunload', ()=> {
+      disableLive();
+    });
+
+  </script>
+</body>
+</html>
+
